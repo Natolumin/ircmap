@@ -19,7 +19,8 @@ var (
 )
 
 const (
-	PositionHub = iota
+	PositionUnknown = iota
+	PositionHub
 	PositionLeaf
 )
 
@@ -70,7 +71,7 @@ func scrubValues(ircmap []Server) {
 		if strings.HasPrefix(node.Label, hubPrefix) {
 			node.Label = strings.TrimPrefix(node.Label, hubPrefix)
 			node.Position = PositionHub
-		} else {
+		} else if strings.HasPrefix(node.Label, leafPrefix) {
 			node.Position = PositionLeaf
 			node.Label = strings.TrimPrefix(node.Label, leafPrefix)
 		}
@@ -81,6 +82,9 @@ func BuildDot(ircmap []Server) *gographviz.Graph {
 
 	graph := gographviz.NewGraph()
 	for _, node := range ircmap {
+		if node.Position == PositionUnknown {
+			continue
+		}
 		attrs := make(gographviz.Attrs)
 		attrs["fixedsize"] = "shape"
 		attrs["width"] = usersToWeight(node.Users)
@@ -95,9 +99,8 @@ func BuildDot(ircmap []Server) *gographviz.Graph {
 		graph.AddNode("", esc(node.ServerName), attrs)
 	}
 	for _, node := range ircmap {
-		if node.ParentName != "" {
+		if node.ParentName != "" && node.Position != PositionUnknown {
 			attrs := make(gographviz.Attrs)
-			//attrs["weight"] = strconv.FormatFloat(1/math.Log10((float64)(node.Lag+1)), 'f', -1, 64)
 			attrs["len"] = strconv.FormatFloat(math.Log10((float64)(node.Lag+1)), 'f', -1, 64)
 			attrs["tooltip"] = strconv.Itoa(node.Lag)
 			graph.AddEdge(esc(node.ServerName), esc(node.ParentName), false, attrs)
