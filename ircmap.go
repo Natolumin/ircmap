@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	"math"
@@ -21,7 +22,7 @@ type Stats struct {
 }
 
 type Server struct {
-	XMLName     xml.Name `xml:"server"`
+	XMLName     xml.Name `xml:"server" json:"-"`
 	ServerName  string   `xml:"servername"`
 	ParentName  string   `xml:"parentname"`
 	Lag         int      `xml:"lagmillisecs"`
@@ -79,4 +80,9 @@ func BuildDot(ircmap []Server) *gographviz.Graph {
 	}
 	// The weight of a hub is added to the weight of its children
 	return graph
+}
+
+func BuildJson(ircmap []Server) []byte {
+	res, _ := json.Marshal(ircmap)
+	return res
 }
