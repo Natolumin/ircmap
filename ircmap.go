@@ -7,13 +7,20 @@ import (
 	"math"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/awalterschulze/gographviz"
 )
 
+var (
+	serverDomain = ".rezosup.org"
+	hubPrefix    = "hub."
+	leafPrefix   = "irc."
+)
+
 const (
-	graphName  = "IRC Map"
-	undirected = false
+	PositionHub = iota
+	PositionLeaf
 )
 
 type Stats struct {
@@ -25,9 +32,11 @@ type Server struct {
 	XMLName     xml.Name `xml:"server" json:"-"`
 	ServerName  string   `xml:"servername"`
 	ParentName  string   `xml:"parentname"`
+	Label       string   `xml:"-"`
 	Lag         int      `xml:"lagmillisecs"`
 	Users       int      `xml:"usercount"`
 	Description string   `xml:"gecos"`
+	Position    int      `xml:"-"`
 }
 
 func main() {
@@ -39,6 +48,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	scrubValues(ircmap.ServerList)
 	graph := BuildDot(ircmap.ServerList)
 	fmt.Print(graph)
 }
@@ -52,6 +62,21 @@ func usersToWeight(users int) string {
 	uf := (math.Log10((float64)(users + 1)))
 	return strconv.FormatFloat(uf, 'f', -1, 64)
 }
+
+func scrubValues(ircmap []Server) {
+	for i := range ircmap {
+		node := &ircmap[i]
+		node.Label = strings.TrimSuffix(node.ServerName, serverDomain)
+		if strings.HasPrefix(node.Label, hubPrefix) {
+			node.Label = strings.TrimPrefix(node.Label, hubPrefix)
+			node.Position = PositionHub
+		} else {
+			node.Position = PositionLeaf
+			node.Label = strings.TrimPrefix(node.Label, leafPrefix)
+		}
+	}
+}
+
 func BuildDot(ircmap []Server) *gographviz.Graph {
 
 	graph := gographviz.NewGraph()
@@ -61,6 +86,12 @@ func BuildDot(ircmap []Server) *gographviz.Graph {
 		attrs["width"] = usersToWeight(node.Users)
 		attrs["height"] = usersToWeight(node.Users)
 		attrs["tooltip"] = esc(node.Description)
+		attrs["label"] = esc(node.Label)
+		if node.Position == PositionHub {
+			attrs["shape"] = "diamond"
+			attrs["width"] = "1"
+			attrs["height"] = "1"
+		}
 		graph.AddNode("", esc(node.ServerName), attrs)
 	}
 	for _, node := range ircmap {
@@ -69,7 +100,7 @@ func BuildDot(ircmap []Server) *gographviz.Graph {
 			//attrs["weight"] = strconv.FormatFloat(1/math.Log10((float64)(node.Lag+1)), 'f', -1, 64)
 			attrs["len"] = strconv.FormatFloat(math.Log10((float64)(node.Lag+1)), 'f', -1, 64)
 			attrs["tooltip"] = strconv.Itoa(node.Lag)
-			graph.AddEdge(esc(node.ServerName), esc(node.ParentName), undirected, attrs)
+			graph.AddEdge(esc(node.ServerName), esc(node.ParentName), false, attrs)
 		}
 	}
 	// The weight of a hub is added to the weight of its children
