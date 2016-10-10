@@ -60,7 +60,7 @@ func esc(s string) string {
 }
 
 func usersToWeight(users int) string {
-	uf := (math.Log10((float64)(users + 1)))
+	uf := (math.Sqrt((float64)(users + 1))) / 10
 	return strconv.FormatFloat(uf, 'f', -1, 64)
 }
 
