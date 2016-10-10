@@ -32,15 +32,9 @@ type Server struct {
 
 func main() {
 
-	//FIXME: pluggable file source
-	statfile, err := os.Open("stats.xml")
-	//FIXME: error handling
-	if err != nil {
-		panic(err)
-	}
-	dec := xml.NewDecoder(statfile)
+	dec := xml.NewDecoder(os.Stdin)
 	var ircmap Stats
-	err = dec.Decode(&ircmap)
+	err := dec.Decode(&ircmap)
 	//FIXME: error handling
 	if err != nil {
 		panic(err)
