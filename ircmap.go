@@ -40,9 +40,12 @@ type Server struct {
 	Position    int      `xml:"-" json:"group"`
 }
 
+var displayAll bool
+
 func main() {
 
 	var json = flag.Bool("json", false, "Output JSON instead of dot")
+	flag.BoolVar(&displayAll, "all", false, "Don't scrub unrecognized nodes")
 	flag.Parse()
 
 	dec := xml.NewDecoder(os.Stdin)
