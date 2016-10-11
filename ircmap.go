@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/xml"
+	"flag"
 	"fmt"
 	"math"
 	"os"
@@ -41,6 +42,9 @@ type Server struct {
 
 func main() {
 
+	var json = flag.Bool("json", false, "Output JSON instead of dot")
+	flag.Parse()
+
 	dec := xml.NewDecoder(os.Stdin)
 	var ircmap Stats
 	err := dec.Decode(&ircmap)
@@ -49,8 +53,11 @@ func main() {
 		panic(err)
 	}
 	scrubValues(ircmap.ServerList)
-	graph := BuildDot(ircmap.ServerList)
-	fmt.Print(graph)
+	if !*json {
+		fmt.Print(BuildDot(ircmap.ServerList))
+	} else {
+		fmt.Print(string(BuildJson(ircmap.ServerList)))
+	}
 }
 
 // The Escape API for gographviz doesn't escape names containing a dot. dot doesn't accept those
