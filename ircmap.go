@@ -64,6 +64,7 @@ func main() {
 	tree := buildTree(ircmap.ServerList)
 	tree.FlattenLag()
 	tree.BuildTransit()
+	tree = tree.Normalize()
 	switch {
 	case *json:
 		fmt.Print(string(BuildJson(tree)))

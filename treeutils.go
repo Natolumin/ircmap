@@ -113,6 +113,60 @@ func (t *ServerTree) flattenLag(accLag int) {
 	}
 }
 
+// Normalize finds a better root than the current one and shifts to there, if it exists
+func (t *Servers) Normalize() *Servers {
+	// Find the node with the highest degree
+	maxD := t.Root
+	for _, node := range t.Lookup {
+		if deg(node) > deg(maxD) {
+			maxD = node
+		}
+	}
+	if maxD == t.Root {
+		return t
+	}
+	// Pivot the tree to have that node be the root
+	// Since the tree changes we can assume maxD has a parent
+	servers := Servers{
+		Lookup: t.Lookup,
+		Root: &ServerTree{
+			Parent:   nil,
+			Node:     maxD.Node,
+			Children: append(maxD.Children, rerootTree(maxD.Parent, maxD)),
+		}}
+	servers.Root.Node.ParentName = ""
+
+	return &servers
+}
+
+func rerootTree(node, newParent *ServerTree) *ServerTree {
+	rerootedTree := ServerTree{
+		Parent: newParent,
+		Node:   node.Node,
+	}
+	rerootedTree.Node.ParentName = newParent.Node.ServerName
+	copy(rerootedTree.Children, node.Children)
+	for i, _ := range node.Children {
+		if node.Children[i] == newParent {
+			node.Children[i] = node.Children[len(node.Children)-1]
+			node.Children = node.Children[:len(node.Children)-1]
+		}
+	}
+	if node.Parent != nil {
+		rerootedTree.Children = append(node.Children, rerootTree(node.Parent, node))
+	}
+	return &rerootedTree
+}
+
+func deg(t *ServerTree) (deg int) {
+	if t.Parent != nil {
+		deg = 1 + len(t.Children)
+	} else {
+		deg = len(t.Children)
+	}
+	return deg
+}
+
 func (t *Servers) BuildTransit() {
 	t.Root.buildTransit()
 }
