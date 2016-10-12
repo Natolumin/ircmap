@@ -44,8 +44,12 @@ var displayAll bool
 
 func main() {
 
-	var json = flag.Bool("json", false, "Output JSON instead of dot")
+	var json = flag.Bool("json", false, "Output JSON")
+	var dot = flag.Bool("dot", false, "Output a dot file")
 	flag.BoolVar(&displayAll, "all", false, "Don't scrub unrecognized nodes")
+	flag.StringVar(&serverDomain, "domain", ".rezosup.org", "Domain suffix to remove from server names")
+	flag.StringVar(&hubPrefix, "hubprefix", "hub.", "Hostname prefix to identify hubs")
+	flag.StringVar(&leafPrefix, "leafprefix", "irc.", "Hostname prefix to identify leaves")
 	flag.Parse()
 
 	dec := xml.NewDecoder(os.Stdin)
@@ -58,10 +62,14 @@ func main() {
 	scrubValues(ircmap.ServerList)
 	tree := buildTree(ircmap.ServerList)
 	tree.FlattenLag()
-	if !*json {
+	tree.BuildTransit()
+	switch {
+	case *json:
+		fmt.Print(string(BuildJson(tree)))
+	case *dot:
 		fmt.Print(BuildDot(tree.Slice()))
-	} else {
-		fmt.Print(string(BuildJson(tree.Slice())))
+	default:
+		fmt.Print(tree.String())
 	}
 }
 
