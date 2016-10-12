@@ -99,3 +99,14 @@ func findRoot(ircmap []Server) int {
 	}
 	return 0
 }
+
+func (t *Servers) FlattenLag() {
+	t.Root.flattenLag(0)
+}
+
+func (t *ServerTree) flattenLag(accLag int) {
+	t.Node.Lag -= accLag
+	for _, node := range t.Children {
+		node.flattenLag(t.Node.Lag)
+	}
+}
