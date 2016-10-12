@@ -56,10 +56,12 @@ func main() {
 		panic(err)
 	}
 	scrubValues(ircmap.ServerList)
+	tree := buildTree(ircmap.ServerList)
+	tree.FlattenLag()
 	if !*json {
-		fmt.Print(BuildDot(ircmap.ServerList))
+		fmt.Print(BuildDot(tree.Slice()))
 	} else {
-		fmt.Print(string(BuildJson(ircmap.ServerList)))
+		fmt.Print(string(BuildJson(tree.Slice())))
 	}
 }
 
