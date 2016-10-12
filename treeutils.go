@@ -39,6 +39,30 @@ func (s Servers) Slice() []Server {
 	return s.Root.GetList()
 }
 
+func (s *Servers) String() string {
+	ret := ""
+	return s.Root.string(&ret, 0, false)
+}
+
+func (s *ServerTree) string(acc *string, depth int, last bool) string {
+	padding := ""
+	for i := 0; i < depth-1; i++ {
+		padding += "│  "
+	}
+	if depth > 0 {
+		if last && len(s.Children) == 0 {
+			padding += "└──"
+		} else {
+			padding += "├──"
+		}
+	}
+	*acc += padding + s.Node.ServerName + "\n"
+	for i, node := range s.Children {
+		node.string(acc, depth+1, i == len(s.Children)-1)
+	}
+	return *acc
+}
+
 func buildTree(ircmap []Server) *Servers {
 	rootIndex := findRoot(ircmap)
 	root := ServerTree{
