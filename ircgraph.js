@@ -23,7 +23,7 @@ d3.json(graphsource, function(error, graph) {
             .data(graph.Links)
             .enter()
             .append("line")
-            .attr("stroke-width", function(d) { return Math.sqrt(d.lag); });
+            .attr("stroke-width", function(d) { return Math.max(Math.pow(d.transit, 0.30), 1); });
 
     var node = svg.append("g")
                    .attr("class", "nodes")
@@ -38,7 +38,7 @@ d3.json(graphsource, function(error, graph) {
                            .on("end", dragended));
 
     node.append("circle")
-        .attr("r", function(d) { return d.usercount/10 + 3; })
+        .attr("r", function(d) { return Math.max(d.usercount/10 + 3, 7); })
         .attr("fill", function(d) { return color(d.group); });
 
     node.append("title").text(function(d) { return d.desc + " (" + d.usercount + " Utilisateurs)"; });
