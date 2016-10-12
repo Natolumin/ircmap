@@ -36,6 +36,7 @@ type Server struct {
 	Label       string   `xml:"-" json:"label"`
 	Lag         int      `xml:"lagmillisecs" json:"lagmillisecs"`
 	Users       int      `xml:"usercount" json:"usercount"`
+	Transit     int      `xml:"-" json:"-"`
 	Description string   `xml:"gecos" json:"desc"`
 	Position    int      `xml:"-" json:"group"`
 }

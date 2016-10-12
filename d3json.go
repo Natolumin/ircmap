@@ -5,9 +5,10 @@ import (
 )
 
 type Link struct {
-	Source string `json:"source"`
-	Target string `json:"target"`
-	Lag    int    `json:"lag"`
+	Source  string `json:"source"`
+	Target  string `json:"target"`
+	Lag     int    `json:"lag"`
+	Transit int    `json:"transit"`
 }
 
 type Graph struct {
@@ -15,31 +16,41 @@ type Graph struct {
 	Links   []Link
 }
 
-func BuildJson(ircmap []Server) []byte {
+func max(a, b int) int {
+	if a > b {
+		return a
+	} else {
+		return b
+	}
+}
 
-	var links []Link
-	for _, server := range ircmap {
-		if !displayAll && server.Position == PositionUnknown {
-			continue
-		}
-		if server.ParentName != "" {
-			links = append(links, Link{
-				Source: server.ParentName,
-				Target: server.ServerName,
-				Lag:    server.Lag,
-			})
+func BuildJson(ircmap *Servers) []byte {
+
+	res := Graph{}
+	for _, server := range ircmap.Lookup {
+		if displayAll || server.Node.Position != PositionUnknown {
+			res.Servers = append(res.Servers, server.Node)
 		}
 	}
-	if !displayAll {
-		var filteredmap []Server
-		for _, node := range ircmap {
-			if node.Position != PositionUnknown {
-				filteredmap = append(filteredmap, node)
+	for _, server := range ircmap.Lookup {
+		if server.Parent != nil && (displayAll || (server.Node.Position != PositionUnknown && server.Parent.Node.Position != PositionUnknown)) {
+			currentLink := Link{
+				Source: server.Node.ParentName,
+				Target: server.Node.ServerName,
+				Lag:    server.Node.Lag,
 			}
+			switch {
+			case server.Node.Position == PositionLeaf:
+				currentLink.Transit = server.Node.Transit
+			case server.Parent.Node.Position == PositionLeaf:
+				currentLink.Transit = server.Parent.Node.Transit
+			case server.Node.Position == PositionHub && server.Parent.Node.Position == PositionHub:
+				currentLink.Transit = max(server.Node.Transit, server.Parent.Node.Transit)
+			}
+			res.Links = append(res.Links, currentLink)
 		}
-		ircmap = filteredmap
 	}
 
-	res, _ := json.Marshal(Graph{Servers: ircmap, Links: links})
-	return res
+	jsonobj, _ := json.Marshal(res)
+	return jsonobj
 }

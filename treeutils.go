@@ -5,6 +5,7 @@ import (
 )
 
 type ServerTree struct {
+	Parent   *ServerTree
 	Node     Server
 	Children []*ServerTree
 }
@@ -17,6 +18,7 @@ type Servers struct {
 func (s *Servers) Add(node *Server) error {
 	if parent := s.Lookup[node.ParentName]; parent != nil {
 		stree := ServerTree{
+			Parent:   parent,
 			Node:     *node,
 			Children: []*ServerTree{},
 		}
@@ -109,4 +111,26 @@ func (t *ServerTree) flattenLag(accLag int) {
 	for _, node := range t.Children {
 		node.flattenLag(t.Node.Lag)
 	}
+}
+
+func (t *Servers) BuildTransit() {
+	t.Root.buildTransit()
+}
+
+func (t *ServerTree) buildTransit() {
+	for _, child := range t.Children {
+		child.buildTransit()
+	}
+	acc := t.Node.Users
+	if t.Node.Position == PositionHub {
+		if t.Parent != nil && t.Parent.Node.Position == PositionLeaf {
+			acc = t.Parent.Node.Users
+		}
+		for _, child := range t.Children {
+			if child.Node.Position == PositionLeaf {
+				acc += child.Node.Users
+			}
+		}
+	}
+	t.Node.Transit = acc
 }
