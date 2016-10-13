@@ -4,6 +4,7 @@ import (
 	"encoding/xml"
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 
@@ -51,7 +52,7 @@ func main() {
 	err := dec.Decode(&ircmap)
 	//FIXME: error handling
 	if err != nil {
-		panic(err)
+		log.Fatalf("Error building the map: %s", err)
 	}
 	scrubValues(ircmap.ServerList)
 	tree := irctree.BuildTree(ircmap.ServerList)
