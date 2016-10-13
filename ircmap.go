@@ -42,8 +42,7 @@ type Stats struct {
 
 func main() {
 
-	var json = flag.Bool("json", false, "Output JSON")
-	var dot = flag.Bool("dot", false, "Output a dot file")
+	var output = flag.String("o", "raw", "Output format (dot, json, raw)")
 	flag.BoolVar(&displayAll, "all", false, "Don't scrub unrecognized nodes")
 	flag.Parse()
 
@@ -56,10 +55,10 @@ func main() {
 	}
 	scrubValues(ircmap.ServerList)
 	tree := irctree.BuildTree(ircmap.ServerList)
-	switch {
-	case *json:
+	switch *output {
+	case "json":
 		fmt.Print(formatters.BuildJson(tree, displayAll))
-	case *dot:
+	case "dot":
 		fmt.Print(formatters.BuildDot(tree.Slice(), displayAll))
 	default:
 		fmt.Print(tree.String())
