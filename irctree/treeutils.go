@@ -117,17 +117,7 @@ func (t *Servers) Normalize() *Servers {
 		return t
 	}
 	// Pivot the tree to have that node be the root
-	// Since the tree changes we can assume maxD has a parent
-	servers := Servers{
-		Root: &ServerTree{
-			Parent: nil,
-			Server: maxD.Server,
-			Children: append(maxD.Children, Link{
-				ServerTree: rerootTree(maxD.Parent.ServerTree, maxD),
-				Lag:        abs(maxD.Parent.ServerTree.Lag - maxD.Lag),
-			}),
-		}}
-	servers.Root.ParentName = ""
+	servers := Servers{Root: rerootTree(maxD, nil)}
 	servers.rebuildLookup()
 	return &servers
 }
@@ -141,8 +131,8 @@ func (s *Servers) rebuildLookup() {
 
 func (t *ServerTree) dfmap(fn func(*ServerTree)) {
 	fn(t)
-	for _, child := range t.Children {
-		child.dfmap(fn)
+	for i, _ := range t.Children {
+		t.Children[i].ServerTree.dfmap(fn)
 	}
 }
 
@@ -162,28 +152,58 @@ func max(a, b int) int {
 }
 
 func rerootTree(node, newParent *ServerTree) *ServerTree {
-	rerootedTree := ServerTree{
-		Parent: &Link{
-			ServerTree: newParent,
-			Lag:        abs(newParent.Lag - node.Lag),
-		},
-		Server: node.Server,
+
+	// build this item, without children
+	var rerootedTree ServerTree
+	if newParent != nil {
+		rerootedTree = ServerTree{
+			Parent: &Link{
+				ServerTree: newParent,
+			},
+			Server: node.Server,
+		}
+		rerootedTree.ParentName = newParent.ServerName
+	} else {
+		rerootedTree = ServerTree{
+			Parent: nil,
+			Server: node.Server,
+		}
+		rerootedTree.ParentName = ""
+		rerootedTree.Lag = 0
 	}
-	rerootedTree.ParentName = newParent.ServerName
-	copy(rerootedTree.Children, node.Children)
-	for i, _ := range node.Children {
-		if node.Children[i].ServerTree == newParent {
-			node.Children[i] = node.Children[len(node.Children)-1]
-			node.Children = node.Children[:len(node.Children)-1]
+
+	//Correct Lag with information from the ex-child-new-parent
+	for _, child := range node.Children {
+		if newParent != nil && child.ServerName == newParent.ServerName {
+			// Correct lag with information from the new-parent-ex-child though
+			rerootedTree.Parent.Lag = child.Lag
+			rerootedTree.Lag = newParent.Lag + child.Lag
 		}
 	}
-	if node.Parent != nil {
-		rerootedTree.Children = append(node.Children, Link{
-			ServerTree: rerootTree(node.Parent.ServerTree, node),
-			Lag:        abs(node.Parent.ServerTree.Lag - node.Lag),
-		})
+
+	// deep copy children with references to the new node
+	for _, child := range node.Children {
+		// Don't copy the new parent from the children table
+		if newParent == nil || child.ServerName != newParent.ServerName {
+			rerootedTree.Children = append(rerootedTree.Children, copychild(&child, &rerootedTree))
+		}
+	}
+
+	// Move the ex-parent to the child list, rerooting it at the same time (providing we are rerooting not merely
+	// copying)
+	if node.Parent != nil && (newParent == nil || node.Parent.ServerName != newParent.ServerName) {
+		rerootedTree.Children = append(rerootedTree.Children, copychild(node.Parent, &rerootedTree))
 	}
 	return &rerootedTree
+}
+
+func copychild(link *Link, parent *ServerTree) Link {
+	copiedLink := Link{
+		ServerTree: rerootTree(link.ServerTree, parent),
+		Lag:        link.Lag,
+	}
+	copiedLink.ServerTree.Lag = parent.Lag + link.Lag
+	return copiedLink
 }
 
 func deg(t *ServerTree) (deg int) {
