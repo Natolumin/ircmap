@@ -42,8 +42,7 @@ func main() {
 		panic(err)
 	}
 	scrubValues(ircmap.ServerList)
-	tree := irctree.BuildTree(ircmap.ServerList).Normalize()
-	tree.BuildTransit()
+	tree := irctree.BuildTree(ircmap.ServerList)
 	switch {
 	case *json:
 		fmt.Print(formatters.BuildJson(tree, displayAll))

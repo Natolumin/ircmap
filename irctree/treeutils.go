@@ -60,7 +60,7 @@ func (s *ServerTree) string(acc *string, depth int, last bool) string {
 	return *acc
 }
 
-func BuildTree(ircmap []Server) *Servers {
+func buildTree(ircmap []Server) *Servers {
 	rootIndex := findRoot(ircmap)
 	root := ServerTree{
 		Node:     ircmap[rootIndex],
@@ -86,6 +86,12 @@ func BuildTree(ircmap []Server) *Servers {
 	}
 
 	return &s
+}
+
+func BuildTree(ircmap []Server) (s *Servers) {
+	s = buildTree(ircmap).Normalize()
+	s.buildTransit()
+	return s
 }
 
 func findRoot(ircmap []Server) int {
@@ -189,7 +195,7 @@ func deg(t *ServerTree) (deg int) {
 	return deg
 }
 
-func (t *Servers) BuildTransit() {
+func (t *Servers) buildTransit() {
 	t.Root.buildTransit()
 }
 
