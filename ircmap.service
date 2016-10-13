@@ -1,0 +1,12 @@
+[Unit]
+Description=An http server serving an real-time IRC network map
+
+[Service]
+EnvironmentFile=/etc/ircmap.conf
+ExecStart=/usr/bin/ircmap -serve -all
+WorkingDirectory=/usr/share/ircmap
+User=nobody
+Group=nobody
+
+[Install]
+WantedBy=multi-user.target
