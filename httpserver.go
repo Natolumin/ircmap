@@ -21,7 +21,7 @@ func (p protoHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(404)
 		return
 	}
-	if r.URL.Path == "" {
+	if r.URL.Path == "/" {
 		w.Header().Add("Location", "ircmap.html")
 		w.WriteHeader(301)
 		return
@@ -43,6 +43,10 @@ func (p protoHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case "/map.dot":
 		w.Header().Set("Content-Type", "text/vnd.graphviz")
 		io.WriteString(w, formatters.BuildDot(ircmap.Slice(), displayAll).String())
+	case "/map.txt":
+		io.WriteString(w, ircmap.String())
+	default:
+		w.WriteHeader(404)
 	}
 }
 
