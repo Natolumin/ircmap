@@ -6,18 +6,24 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/Natolumin/ircmap/formatters"
 	"github.com/Natolumin/ircmap/irctree"
 )
 
 var (
-	serverDomain = ".rezosup.org"
-	hubPrefix    = "hub."
-	leafPrefix   = "irc."
-	displayAll   = false
+	serverDomain  = ".rezosup.org"
+	hubPrefix     = "hub."
+	leafPrefix    = "irc."
+	statsURL      = "http://localhost:8000/stats"
+	listenAddress string
+	displayAll    = false
+	tlsCert       string
+	tlsKey        string
 )
 
 func init() {
@@ -28,6 +34,9 @@ func init() {
 		{Env: "IRCMAP_SERVER_DOMAIN", Var: &serverDomain},
 		{Env: "IRCMAP_HUB_PREFIX", Var: &hubPrefix},
 		{Env: "IRCMAP_LEAF_PREFIX", Var: &leafPrefix},
+		{Env: "IRCMAP_STATS_URL", Var: &statsURL},
+		{Env: "IRCMAP_TLS_CERT", Var: &tlsCert},
+		{Env: "IRCMAP_TLS_KEY", Var: &tlsKey},
 	}
 	for _, val := range configValues {
 		if env := os.Getenv(val.Env); env != "" {
@@ -44,14 +53,30 @@ type Stats struct {
 func main() {
 
 	var output = flag.String("o", "raw", "Output format (dot, json, raw)")
+	var stdin = flag.Bool("stdin", false, "Use stdin instead of network for map source")
 	flag.BoolVar(&displayAll, "all", false, "Don't scrub unrecognized nodes")
+	flag.StringVar(&listenAddress, "listen", "", "Address to listen on")
+	flag.StringVar(&statsURL, "url", statsURL, "Location of the inspircd stats page")
+	var serve = flag.Bool("serve", true, "Run as server")
 	flag.Parse()
+
+	if *stdin {
+		*serve = false
+	}
+	if *serve {
+		err := doServe()
+		log.Fatalf("Server encountered error: %s", err)
+	}
 
 	var (
 		tree *irctree.Servers
 		err  error
 	)
+	if *stdin {
 		tree, err = decodeMap(os.Stdin)
+	} else {
+		tree, err = GetMap(statsURL, time.Second)
+	}
 	if err != nil {
 		log.Fatalf("Error building the map: %s", err)
 	}
@@ -63,6 +88,23 @@ func main() {
 	default:
 		fmt.Print(tree.String())
 	}
+}
+
+func doServe() error {
+	http.Handle("/", protoHandler{
+		UpstreamURL: "http://localhost:8000/stats",
+		Timeout:     time.Second,
+	})
+	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static/"))))
+	http.Handle("/ircmap.html", http.FileServer(http.Dir("static/")))
+
+	var err error
+	if tlsCert != "" && tlsKey != "" {
+		err = http.ListenAndServeTLS(listenAddress, "", "", nil)
+	} else {
+		err = http.ListenAndServe(listenAddress, nil)
+	}
+	return err
 }
 
 func decodeMap(read io.Reader) (*irctree.Servers, error) {
