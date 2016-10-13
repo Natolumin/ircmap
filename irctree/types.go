@@ -28,8 +28,8 @@ type Server struct {
 // ServerTree is a node from a "doubly-linked tree" (a tree where each node has both references to its parent and its
 // children
 type ServerTree struct {
-	Parent   *Link
-	Node     Server
+	Parent *Link
+	Server
 	Children []Link
 }
 
