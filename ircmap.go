@@ -21,12 +21,16 @@ var (
 	leafPrefix    = "irc."
 	statsURL      = "http://localhost:8000/stats"
 	listenAddress string
+	clientTimeout = time.Second
 	displayAll    = false
 	tlsCert       string
 	tlsKey        string
 )
 
 func init() {
+
+	var stringTimeout string
+
 	configValues := []struct {
 		Env string
 		Var *string
@@ -35,6 +39,8 @@ func init() {
 		{Env: "IRCMAP_HUB_PREFIX", Var: &hubPrefix},
 		{Env: "IRCMAP_LEAF_PREFIX", Var: &leafPrefix},
 		{Env: "IRCMAP_STATS_URL", Var: &statsURL},
+		{Env: "IRCMAP_LISTEN_ADDRESS", Var: &listenAddress},
+		{Env: "IRCMAP_CLIENT_TIMEOUT", Var: &stringTimeout},
 		{Env: "IRCMAP_TLS_CERT", Var: &tlsCert},
 		{Env: "IRCMAP_TLS_KEY", Var: &tlsKey},
 	}
@@ -43,6 +49,15 @@ func init() {
 			*val.Var = env
 		}
 	}
+
+	if stringTimeout != "" {
+		var err error
+		clientTimeout, err = time.ParseDuration(stringTimeout)
+		if err != nil {
+			clientTimeout = time.Second
+		}
+	}
+
 }
 
 type Stats struct {
@@ -75,7 +90,7 @@ func main() {
 	if *stdin {
 		tree, err = decodeMap(os.Stdin)
 	} else {
-		tree, err = GetMap(statsURL, time.Second)
+		tree, err = GetMap(statsURL, clientTimeout)
 	}
 	if err != nil {
 		log.Fatalf("Error building the map: %s", err)
@@ -93,7 +108,7 @@ func main() {
 func doServe() error {
 	http.Handle("/", protoHandler{
 		UpstreamURL: "http://localhost:8000/stats",
-		Timeout:     time.Second,
+		Timeout:     clientTimeout,
 	})
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static/"))))
 	http.Handle("/ircmap.html", http.FileServer(http.Dir("static/")))
