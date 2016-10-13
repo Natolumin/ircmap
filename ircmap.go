@@ -15,23 +15,35 @@ var (
 	serverDomain = ".rezosup.org"
 	hubPrefix    = "hub."
 	leafPrefix   = "irc."
+	displayAll   = false
 )
+
+func init() {
+	configValues := []struct {
+		Env string
+		Var *string
+	}{
+		{Env: "IRCMAP_SERVER_DOMAIN", Var: &serverDomain},
+		{Env: "IRCMAP_HUB_PREFIX", Var: &hubPrefix},
+		{Env: "IRCMAP_LEAF_PREFIX", Var: &leafPrefix},
+	}
+	for _, val := range configValues {
+		if env := os.Getenv(val.Env); env != "" {
+			*val.Var = env
+		}
+	}
+}
 
 type Stats struct {
 	XMLName    xml.Name         `xml:"inspircdstats"`
 	ServerList []irctree.Server `xml:"serverlist>server"`
 }
 
-var displayAll bool
-
 func main() {
 
 	var json = flag.Bool("json", false, "Output JSON")
 	var dot = flag.Bool("dot", false, "Output a dot file")
 	flag.BoolVar(&displayAll, "all", false, "Don't scrub unrecognized nodes")
-	flag.StringVar(&serverDomain, "domain", ".rezosup.org", "Domain suffix to remove from server names")
-	flag.StringVar(&hubPrefix, "hubprefix", "hub.", "Hostname prefix to identify hubs")
-	flag.StringVar(&leafPrefix, "leafprefix", "irc.", "Hostname prefix to identify leaves")
 	flag.Parse()
 
 	dec := xml.NewDecoder(os.Stdin)
