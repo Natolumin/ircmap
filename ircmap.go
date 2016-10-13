@@ -4,6 +4,7 @@ import (
 	"encoding/xml"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"strings"
@@ -46,15 +47,14 @@ func main() {
 	flag.BoolVar(&displayAll, "all", false, "Don't scrub unrecognized nodes")
 	flag.Parse()
 
-	dec := xml.NewDecoder(os.Stdin)
-	var ircmap Stats
-	err := dec.Decode(&ircmap)
-	//FIXME: error handling
+	var (
+		tree *irctree.Servers
+		err  error
+	)
+		tree, err = decodeMap(os.Stdin)
 	if err != nil {
 		log.Fatalf("Error building the map: %s", err)
 	}
-	scrubValues(ircmap.ServerList)
-	tree := irctree.BuildTree(ircmap.ServerList)
 	switch *output {
 	case "json":
 		fmt.Print(formatters.BuildJson(tree, displayAll))
@@ -64,6 +64,20 @@ func main() {
 		fmt.Print(tree.String())
 	}
 }
+
+func decodeMap(read io.Reader) (*irctree.Servers, error) {
+
+	dec := xml.NewDecoder(read)
+	var ircmap Stats
+	err := dec.Decode(&ircmap)
+	if err != nil {
+		return nil, err
+	}
+	scrubValues(ircmap.ServerList)
+	tree := irctree.BuildTree(ircmap.ServerList)
+	return tree, nil
+}
+
 func scrubValues(ircmap []irctree.Server) {
 	for i := range ircmap {
 		node := &ircmap[i]
