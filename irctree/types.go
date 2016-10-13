@@ -36,7 +36,7 @@ type ServerTree struct {
 type Link struct {
 	Lag     int
 	Transit int
-	End     *ServerTree
+	*ServerTree
 }
 
 // Servers is a helper structure to quickly iterate (in no particular order) on the contents of a ServerTree

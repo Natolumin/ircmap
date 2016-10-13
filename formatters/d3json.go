@@ -30,7 +30,7 @@ func BuildJson(ircmap *irctree.Servers, displayAll bool) string {
 		if server.Parent == nil {
 			continue
 		}
-		if displayAll || (server.Position != irctree.PositionUnknown && server.Parent.End.Position != irctree.PositionUnknown) {
+		if displayAll || (server.Position != irctree.PositionUnknown && server.Parent.Position != irctree.PositionUnknown) {
 			res.Links = append(res.Links, Link{
 				Source:  server.ParentName,
 				Target:  server.ServerName,

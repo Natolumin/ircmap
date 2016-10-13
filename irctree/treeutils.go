@@ -8,16 +8,16 @@ func (s *Servers) Add(node *Server) error {
 	if parent := s.Lookup[node.ParentName]; parent != nil {
 		stree := ServerTree{
 			Parent: &Link{
-				End: parent,
-				Lag: (node.Lag - parent.Lag),
+				ServerTree: parent,
+				Lag:        (node.Lag - parent.Lag),
 			},
 			Server:   *node,
 			Children: []Link{},
 		}
 		s.Lookup[node.ServerName] = &stree
 		parent.Children = append(parent.Children, Link{
-			Lag: abs(node.Lag - parent.Lag),
-			End: &stree,
+			Lag:        abs(node.Lag - parent.Lag),
+			ServerTree: &stree,
 		})
 		return nil
 	}
@@ -27,7 +27,7 @@ func (s *Servers) Add(node *Server) error {
 func (s *ServerTree) GetList() []Server {
 	ret := []Server{s.Server}
 	for _, child := range s.Children {
-		ret = append(ret, child.End.GetList()...)
+		ret = append(ret, child.GetList()...)
 	}
 	return ret
 }
@@ -55,7 +55,7 @@ func (s *ServerTree) string(acc *string, depth int, last bool) string {
 	}
 	*acc += padding + fmt.Sprint(s.ServerName) + "\n"
 	for i, node := range s.Children {
-		node.End.string(acc, depth+1, i == len(s.Children)-1)
+		node.string(acc, depth+1, i == len(s.Children)-1)
 	}
 	return *acc
 }
@@ -123,8 +123,8 @@ func (t *Servers) Normalize() *Servers {
 			Parent: nil,
 			Server: maxD.Server,
 			Children: append(maxD.Children, Link{
-				End: rerootTree(maxD.Parent.End, maxD),
-				Lag: abs(maxD.Parent.End.Lag - maxD.Lag),
+				ServerTree: rerootTree(maxD.Parent.ServerTree, maxD),
+				Lag:        abs(maxD.Parent.ServerTree.Lag - maxD.Lag),
 			}),
 		}}
 	servers.Root.ParentName = ""
@@ -142,7 +142,7 @@ func (s *Servers) rebuildLookup() {
 func (t *ServerTree) dfmap(fn func(*ServerTree)) {
 	fn(t)
 	for _, child := range t.Children {
-		child.End.dfmap(fn)
+		child.dfmap(fn)
 	}
 }
 
@@ -164,23 +164,23 @@ func max(a, b int) int {
 func rerootTree(node, newParent *ServerTree) *ServerTree {
 	rerootedTree := ServerTree{
 		Parent: &Link{
-			End: newParent,
-			Lag: abs(newParent.Lag - node.Lag),
+			ServerTree: newParent,
+			Lag:        abs(newParent.Lag - node.Lag),
 		},
 		Server: node.Server,
 	}
 	rerootedTree.ParentName = newParent.ServerName
 	copy(rerootedTree.Children, node.Children)
 	for i, _ := range node.Children {
-		if node.Children[i].End == newParent {
+		if node.Children[i].ServerTree == newParent {
 			node.Children[i] = node.Children[len(node.Children)-1]
 			node.Children = node.Children[:len(node.Children)-1]
 		}
 	}
 	if node.Parent != nil {
 		rerootedTree.Children = append(node.Children, Link{
-			End: rerootTree(node.Parent.End, node),
-			Lag: abs(node.Parent.End.Lag - node.Lag),
+			ServerTree: rerootTree(node.Parent.ServerTree, node),
+			Lag:        abs(node.Parent.ServerTree.Lag - node.Lag),
 		})
 	}
 	return &rerootedTree
@@ -201,16 +201,16 @@ func (t *Servers) buildTransit() {
 
 func (t *ServerTree) buildTransit() {
 	for _, child := range t.Children {
-		child.End.buildTransit()
+		child.buildTransit()
 	}
 	acc := t.Users
 	if t.Position == PositionHub {
-		if t.Parent != nil && t.Parent.End.Position == PositionLeaf {
-			acc = t.Parent.End.Users
+		if t.Parent != nil && t.Parent.Position == PositionLeaf {
+			acc = t.Parent.Users
 		}
 		for _, child := range t.Children {
-			if child.End.Position == PositionLeaf {
-				acc += child.End.Users
+			if child.Position == PositionLeaf {
+				acc += child.Users
 			}
 		}
 	}
@@ -219,18 +219,18 @@ func (t *ServerTree) buildTransit() {
 		switch {
 		case origin.Position == PositionLeaf || origin.Position == PositionUnknown:
 			currentLink.Transit = origin.Transit
-		case origin.Position == PositionHub && currentLink.End.Position == PositionHub:
-			currentLink.Transit = max(origin.Transit, currentLink.End.Transit)
-		case currentLink.End.Position == PositionLeaf || currentLink.End.Position == PositionUnknown:
-			currentLink.Transit = currentLink.End.Transit
+		case origin.Position == PositionHub && currentLink.Position == PositionHub:
+			currentLink.Transit = max(origin.Transit, currentLink.ServerTree.Transit)
+		case currentLink.Position == PositionLeaf || currentLink.Position == PositionUnknown:
+			currentLink.Transit = currentLink.ServerTree.Transit
 		}
 	}
 	for i, _ := range t.Children {
 		classifyLink(&t.Server, &t.Children[i])
-		t.Children[i].End.Parent = &Link{
-			End:     t,
-			Lag:     t.Children[i].Lag,
-			Transit: t.Children[i].Transit,
+		t.Children[i].Parent = &Link{
+			ServerTree: t,
+			Lag:        t.Children[i].Lag,
+			Transit:    t.Children[i].Transit,
 		}
 	}
 }
