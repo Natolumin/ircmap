@@ -115,7 +115,7 @@ func doServe() error {
 
 	var err error
 	if tlsCert != "" && tlsKey != "" {
-		err = http.ListenAndServeTLS(listenAddress, "", "", nil)
+		err = http.ListenAndServeTLS(listenAddress, tlsCert, tlsKey, nil)
 	} else {
 		err = http.ListenAndServe(listenAddress, nil)
 	}
