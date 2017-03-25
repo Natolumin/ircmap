@@ -38,20 +38,20 @@ d3.json(graphsource, function(error, graph) {
                            .on("end", dragended));
 
     node.append("circle")
-        .attr("r", function(d) { return Math.max(d.usercount/10 + 3, 7); })
+        .attr("r", function(d) { return Math.max(Math.sqrt(d.usercount) * 1.5, 5); })
         .attr("fill", function(d) { return color(d.group); });
 
     node.append("title").text(function(d) { return d.desc + " (" + d.usercount + " Utilisateurs)"; });
 
     node.append("text")
-        .attr("dx", function(d) { return d.usercount/10 + 8; })
+        .attr("dx", function(d) { return Math.max(Math.sqrt(d.usercount) * 1.5, 5) + 3; })
         .attr("dy", ".35em")
         .text(function(d) { return d.label; });
 
     simulation.nodes(graph.Servers).on("tick", ticked);
 
     simulation.force("link").links(graph.Links).distance(function(d) {
-        return 50 + Math.sqrt(d.lag) * 10;
+        return 80 + Math.pow(d.lag, 0.30) * 20;
     });
 
     function ticked() {
