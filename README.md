@@ -44,3 +44,11 @@ testing. This is not compatible with server mode.
 
 This was built to be used with servers in the [Rezosup](https://rezosup.org) network of french universities. The default
 values are thought to work in that context.
+
+## Example
+
+An example is available at http://irc.rezel.net
+
+An example screenshot:
+
+![](ircmap.png)
