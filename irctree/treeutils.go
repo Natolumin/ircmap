@@ -4,6 +4,7 @@ import (
 	"fmt"
 )
 
+// Add a server to an existing tree
 func (s *Servers) Add(node *Server) error {
 	if parent := s.Lookup[node.ParentName]; parent != nil {
 		stree := ServerTree{
@@ -24,38 +25,41 @@ func (s *Servers) Add(node *Server) error {
 	return fmt.Errorf("Parent not found: %s", node.ParentName)
 }
 
-func (s *ServerTree) GetList() []Server {
-	ret := []Server{s.Server}
-	for _, child := range s.Children {
+// GetList is a utility function to return an easily iterable version of the tree
+func (t *ServerTree) GetList() []Server {
+	ret := []Server{t.Server}
+	for _, child := range t.Children {
 		ret = append(ret, child.GetList()...)
 	}
 	return ret
 }
 
+// Slice is GetList for the Servers abstraction
 func (s Servers) Slice() []Server {
 	return s.Root.GetList()
 }
 
+// String returns an ascii human-readable representation of the tree
 func (s *Servers) String() string {
 	ret := ""
 	return s.Root.string(&ret, 0, false)
 }
 
-func (s *ServerTree) string(acc *string, depth int, last bool) string {
+func (t *ServerTree) string(acc *string, depth int, last bool) string {
 	padding := ""
 	for i := 0; i < depth-1; i++ {
 		padding += "│  "
 	}
 	if depth > 0 {
-		if last && len(s.Children) == 0 {
+		if last && len(t.Children) == 0 {
 			padding += "└──"
 		} else {
 			padding += "├──"
 		}
 	}
-	*acc += padding + fmt.Sprint(s.ServerName) + "\n"
-	for i, node := range s.Children {
-		node.string(acc, depth+1, i == len(s.Children)-1)
+	*acc += padding + fmt.Sprint(t.ServerName) + "\n"
+	for i, node := range t.Children {
+		node.string(acc, depth+1, i == len(t.Children)-1)
 	}
 	return *acc
 }
@@ -88,6 +92,7 @@ func buildTree(ircmap []Server) *Servers {
 	return &s
 }
 
+// BuildTree constructs a Servers abstraction from a list of Server
 func BuildTree(ircmap []Server) (s *Servers) {
 	s = buildTree(ircmap).Normalize()
 	s.buildTransit()
@@ -105,16 +110,16 @@ func findRoot(ircmap []Server) int {
 
 // Normalize finds a better root than the current one and shifts to there, if it exists
 //! Normalize destroys transit information
-func (t *Servers) Normalize() *Servers {
+func (s *Servers) Normalize() *Servers {
 	// Find the node with the highest degree
-	maxD := t.Root
-	for _, node := range t.Lookup {
+	maxD := s.Root
+	for _, node := range s.Lookup {
 		if deg(node) > deg(maxD) {
 			maxD = node
 		}
 	}
-	if maxD == t.Root {
-		return t
+	if maxD == s.Root {
+		return s
 	}
 	// Pivot the tree to have that node be the root
 	servers := Servers{Root: rerootTree(maxD, nil)}
@@ -131,7 +136,7 @@ func (s *Servers) rebuildLookup() {
 
 func (t *ServerTree) dfmap(fn func(*ServerTree)) {
 	fn(t)
-	for i, _ := range t.Children {
+	for i := range t.Children {
 		t.Children[i].ServerTree.dfmap(fn)
 	}
 }
@@ -139,16 +144,14 @@ func (t *ServerTree) dfmap(fn func(*ServerTree)) {
 func abs(a int) int {
 	if a > 0 {
 		return a
-	} else {
-		return -a
 	}
+	return -a
 }
 func max(a, b int) int {
 	if a > b {
 		return a
-	} else {
-		return b
 	}
+	return b
 }
 
 func rerootTree(node, newParent *ServerTree) *ServerTree {
@@ -215,8 +218,8 @@ func deg(t *ServerTree) (deg int) {
 	return deg
 }
 
-func (t *Servers) buildTransit() {
-	t.Root.buildTransit()
+func (s *Servers) buildTransit() {
+	s.Root.buildTransit()
 }
 
 func (t *ServerTree) buildTransit() {
@@ -245,7 +248,7 @@ func (t *ServerTree) buildTransit() {
 			currentLink.Transit = currentLink.ServerTree.Transit
 		}
 	}
-	for i, _ := range t.Children {
+	for i := range t.Children {
 		classifyLink(&t.Server, &t.Children[i])
 		t.Children[i].Parent = &Link{
 			ServerTree: t,
