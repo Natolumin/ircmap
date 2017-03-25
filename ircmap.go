@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"encoding/xml"
 	"flag"
 	"fmt"
@@ -145,6 +146,12 @@ func scrubValues(ircmap []irctree.Server) {
 		} else if strings.HasPrefix(node.Label, leafPrefix) {
 			node.Position = irctree.PositionLeaf
 			node.Label = strings.TrimPrefix(node.Label, leafPrefix)
+		}
+		if node.Descb64 != "" {
+			rawstr, err := base64.RawStdEncoding.DecodeString(node.Descb64)
+			if err == nil {
+				node.Description = string(rawstr)
+			}
 		}
 	}
 }

@@ -22,6 +22,7 @@ type Server struct {
 	Users       int      `xml:"usercount" json:"usercount"`
 	Transit     int      `xml:"-" json:"-"`
 	Description string   `xml:"gecos" json:"desc"`
+	Descb64     string   `xml:",chardata" json:"-"`
 	Position    int      `xml:"-" json:"group"`
 }
 
