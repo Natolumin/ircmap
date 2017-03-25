@@ -24,7 +24,7 @@ func BuildDot(ircmap []irctree.Server, displayAll bool) *gographviz.Graph {
 
 	graph := gographviz.NewGraph()
 	for _, node := range ircmap {
-		if displayAll || node.Position != irctree.PositionUnknown {
+		if !displayAll && node.Position == irctree.PositionUnknown {
 			continue
 		}
 		attrs := make(gographviz.Attrs)
