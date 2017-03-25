@@ -48,10 +48,14 @@ func (s *Servers) String() string {
 func (t *ServerTree) string(acc *string, depth int, last bool) string {
 	padding := ""
 	for i := 0; i < depth-1; i++ {
-		padding += "│  "
+		if !last {
+			padding += "│  "
+		} else {
+			padding += "   "
+		}
 	}
 	if depth > 0 {
-		if last && len(t.Children) == 0 {
+		if last {
 			padding += "└──"
 		} else {
 			padding += "├──"

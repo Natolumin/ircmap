@@ -36,16 +36,45 @@ var normalizedServers = []Server{
 	{ServerName: "B", ParentName: "A", Lag: 12, Users: 5, Transit: 5, Position: PositionLeaf},
 }
 
+var stringServers = `C
+├──D
+├──E
+├──F
+└──A
+   └──B
+`
+
 func TestNormalize(t *testing.T) {
 	tree := BuildTree(exampleServers)
 
 	slice := tree.Slice()
-	for i, node := range slice {
-		if node != normalizedServers[i] {
-			t.Errorf("Server mismatch: expected %s got %s\n", normalizedServers[i], node)
+	compareTrees(slice, normalizedServers, t)
+}
+
+func testNormalizeIdempotent(t *testing.T) {
+	tree := BuildTree(exampleServers)
+	normtree := tree.Normalize()
+	compareTrees(tree.Slice(), normtree.Slice(), t)
+}
+
+func compareTrees(a, b []Server, t *testing.T) {
+	for i, node := range a {
+		if node != b[i] {
+			t.Errorf("Server mismatch: expected %v got %v\n", b[i], node)
 		}
 	}
-	if len(slice) != len(normalizedServers) {
-		t.Errorf("Missing servers: %d out of %d present\n", len(slice), len(normalizedServers))
+	if len(a) != len(b) {
+		t.Errorf("Missing servers: %d out of %d present\n", len(a), len(b))
+	}
+}
+
+func TestPrint(t *testing.T) {
+	tree := BuildTree(exampleServers)
+
+	if tree.String() != stringServers {
+		t.Errorf(`String repr mismatch: expected :
+%s
+, got
+%s`, stringServers, tree.String())
 	}
 }
