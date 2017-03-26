@@ -2,7 +2,9 @@ package formatters
 
 import (
 	"fmt"
+	"io"
 	"math"
+	"os/exec"
 	"strconv"
 
 	"github.com/awalterschulze/gographviz"
@@ -50,4 +52,15 @@ func BuildDot(ircmap []irctree.Server, displayAll bool) *gographviz.Graph {
 	}
 	// The weight of a hub is added to the weight of its children
 	return graph
+}
+
+//BuildPNG returns a PNG from a gographviz graph
+func BuildPNG(g *gographviz.Graph, dot *exec.Cmd) ([]byte, error) {
+	stdin, err := dot.StdinPipe()
+	if err != nil {
+		return nil, err
+	}
+	io.WriteString(stdin, g.String())
+	stdin.Close()
+	return dot.Output()
 }

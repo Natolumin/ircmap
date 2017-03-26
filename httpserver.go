@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os/exec"
 	"time"
 
 	"github.com/Natolumin/ircmap/formatters"
@@ -43,6 +44,19 @@ func (p protoHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case "/map.dot":
 		w.Header().Set("Content-Type", "text/vnd.graphviz")
 		io.WriteString(w, formatters.BuildDot(ircmap.Slice(), displayAll).String())
+	case "/map.png":
+		if !doPng {
+			w.WriteHeader(404)
+			return
+		}
+		w.Header().Set("Content-Type", "image/png")
+		cmd := exec.Command("dot", dotOptions...)
+		out, err := formatters.BuildPNG(formatters.BuildDot(ircmap.Slice(), displayAll), cmd)
+		if err != nil {
+			w.WriteHeader(500)
+		} else {
+			w.Write(out)
+		}
 	case "/map.txt":
 		io.WriteString(w, ircmap.String())
 	default:

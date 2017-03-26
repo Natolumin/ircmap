@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/exec"
 	"strings"
 	"time"
 
@@ -26,11 +27,14 @@ var (
 	displayAll    = false
 	tlsCert       string
 	tlsKey        string
+	doPng         bool
+	dotOptions    = []string{"-Tpng", "-Kcirco"}
 )
 
 func init() {
 
 	var stringTimeout string
+	var dotOpts string
 
 	configValues := []struct {
 		Env string
@@ -44,6 +48,7 @@ func init() {
 		{Env: "IRCMAP_CLIENT_TIMEOUT", Var: &stringTimeout},
 		{Env: "IRCMAP_TLS_CERT", Var: &tlsCert},
 		{Env: "IRCMAP_TLS_KEY", Var: &tlsKey},
+		{Env: "IRCMAP_DOT_OPTIONS", Var: &dotOpts},
 	}
 	for _, val := range configValues {
 		if env := os.Getenv(val.Env); env != "" {
@@ -58,6 +63,9 @@ func init() {
 			clientTimeout = time.Second
 		}
 	}
+	if dotOpts != "" {
+		dotOptions = strings.Fields(dotOpts)
+	}
 
 }
 
@@ -68,11 +76,12 @@ type Stats struct {
 
 func main() {
 
-	var output = flag.String("o", "raw", "Output format (dot, json, raw)")
+	var output = flag.String("o", "raw", "Output format (dot, json, raw, png)")
 	var stdin = flag.Bool("stdin", false, "Use stdin instead of network for map source")
 	flag.BoolVar(&displayAll, "all", false, "Don't scrub unrecognized nodes")
 	flag.StringVar(&listenAddress, "listen", "", "Address to listen on")
 	flag.StringVar(&statsURL, "url", statsURL, "Location of the inspircd stats page")
+	flag.BoolVar(&doPng, "png", true, "Allow outputting a png by piping into \"dot\" directly in server mode")
 	var serve = flag.Bool("serve", true, "Run as server")
 	flag.Parse()
 
@@ -101,6 +110,13 @@ func main() {
 		fmt.Print(formatters.BuildJson(tree, displayAll))
 	case "dot":
 		fmt.Print(formatters.BuildDot(tree.Slice(), displayAll))
+	case "png":
+		png, err := formatters.BuildPNG(formatters.BuildDot(tree.Slice(), displayAll), exec.Command("dot", dotOptions...))
+		if err == nil {
+			os.Stdout.Write(png)
+		} else {
+			log.Fatalf("Error creating PNG: %v", err)
+		}
 	default:
 		fmt.Print(tree.String())
 	}
