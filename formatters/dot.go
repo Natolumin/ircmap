@@ -23,13 +23,12 @@ func usersToWeight(users int) string {
 }
 
 func BuildDot(ircmap []irctree.Server, displayAll bool) *gographviz.Graph {
-
 	graph := gographviz.NewGraph()
 	for _, node := range ircmap {
 		if !displayAll && node.Position == irctree.PositionUnknown {
 			continue
 		}
-		attrs := make(gographviz.Attrs)
+		attrs := make(map[string]string)
 		attrs["fixedsize"] = "shape"
 		attrs["width"] = usersToWeight(node.Users)
 		attrs["height"] = usersToWeight(node.Users)
@@ -44,7 +43,7 @@ func BuildDot(ircmap []irctree.Server, displayAll bool) *gographviz.Graph {
 	}
 	for _, node := range ircmap {
 		if node.ParentName != "" && (displayAll || node.Position != irctree.PositionUnknown) {
-			attrs := make(gographviz.Attrs)
+			attrs := make(map[string]string)
 			attrs["len"] = strconv.FormatFloat(math.Log10((float64)(node.Lag+1)), 'f', -1, 64)
 			attrs["tooltip"] = strconv.Itoa(node.Lag)
 			graph.AddEdge(esc(node.ServerName), esc(node.ParentName), false, attrs)
